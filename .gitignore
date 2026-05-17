@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter
+.ipynb_checkpoints
+*-checkpoint.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Virtual env
+venv/
+env/
+.venv/
+
+# Data — too large for git
+data/bird/
+data/*.json
+data/*.faiss
+data/*.pkl
+data/*.npy
+data/*.sqlite
+
+# Model checkpoints — too large
+checkpoints/
+*.pt
+*.pth
+*.safetensors
+*.bin
+
+# Logs & results — keep examples only
+logs/
+results/raw/
+wandb/
+*.log
+
+# HuggingFace cache
+.cache/
+hf_cache/
+
+# Colab
+/content/
+
+# Secret tokens
+.env
+*.token
+hf_token.txt
+wandb_key.txt

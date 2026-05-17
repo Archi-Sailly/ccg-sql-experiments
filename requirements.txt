@@ -1,0 +1,46 @@
+# Core ML
+torch>=2.1.0
+transformers>=4.45.0
+peft>=0.13.0
+trl>=0.13.0                # GSPO importance_sampling="sequence" 옵션 필요
+accelerate>=0.34.0
+bitsandbytes>=0.43.0       # 8-bit optim (optional, 메모리 절약)
+
+# Fast inference / rollout
+vllm>=0.6.0                # K=8 rollout 가속 (필수)
+flash-attn>=2.5.0          # Attention 가속 (A100 권장)
+
+# Text-to-SQL
+sqlglot>=25.0.0            # AST 파싱 — 5-class 라벨링
+sqlparse>=0.5.0            # 보조 SQL 파서
+
+# Retrieval & Classification
+sentence-transformers>=3.0.0  # all-MiniLM-L6-v2
+scikit-learn>=1.5.0           # LogisticRegression
+faiss-cpu>=1.8.0              # 의미 검색 인덱스 (GPU 버전: faiss-gpu)
+rank-bm25>=0.2.2              # Stage 1 lexical 검색
+
+# Data & utils
+datasets>=3.0.0
+pandas>=2.0.0
+numpy>=1.26.0
+tqdm>=4.66.0
+pyyaml>=6.0.0
+
+# Evaluation & logging
+wandb>=0.18.0              # 학습 메트릭 로깅 (필수)
+
+# Visualization
+matplotlib>=3.8.0
+seaborn>=0.13.0
+pillow>=10.0.0
+
+# Dev tools
+pytest>=8.0.0
+black>=24.0.0
+ruff>=0.6.0
+ipykernel>=6.29.0
+jupyterlab>=4.0.0
+
+# BIRD specific
+# sqlite3 는 Python 내장

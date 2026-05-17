@@ -1,0 +1,167 @@
+# CCG-SQL Default Configuration
+
+# === Paths ===
+paths:
+  data_dir: ./data
+  bird_train_dir: ./data/bird/train
+  bird_dev_dir: ./data/bird/dev
+  checkpoints_dir: ./checkpoints
+  results_dir: ./results
+  logs_dir: ./logs
+  labeled_train: ./data/bird_train_labeled.json
+  labeled_dev: ./data/bird_dev_labeled.json
+  retrieval_index: ./data/retrieval_index.faiss
+  predictor_ckpt: ./checkpoints/predictor_logreg.pkl
+
+# === Phase 1: Data Layer ===
+data:
+  num_constructs: 5
+  construct_labels: [plain, HAVING, EXISTS, Window, CTE]
+  # 우선순위: 동시 출현 시 가장 복잡한 클래스 부여
+  priority: [CTE, Window, EXISTS, HAVING, plain]
+
+# === Phase 2: Construct Predictor ===
+predictor:
+  encoder: sentence-transformers/all-MiniLM-L6-v2
+  embed_dim: 384
+  classifier:
+    C: 1.0
+    max_iter: 1000
+    solver: lbfgs
+    multi_class: auto
+  cv_folds: 5
+  target_f1: 0.84   # ±2pp 허용
+
+# === Phase 3: Retrieval ===
+retrieval:
+  stage1_top_k: 500
+  stage2_top_k: 8        # K=8 final
+  semantic_weight: 0.6
+  lexical_weight: 0.4
+  alpha_cm: 0.2          # cm 가중치 (Phase 5에서 그리드 탐색)
+
+# === Phase 4: Reward ===
+reward:
+  execution_timeout: 30  # SQLite 실행 timeout (초)
+  lambda_construct: 0.2  # λ — R_construct 가중
+
+# === Phase 5: SFT ===
+sft:
+  base_model: Qwen/Qwen3-8B
+  output_dir: ./checkpoints/sft
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.05
+    target_modules: [q_proj, k_proj, v_proj, gate_proj, up_proj, down_proj]
+  training:
+    num_epochs: 3
+    learning_rate: 2.0e-4
+    per_device_train_batch_size: 4
+    gradient_accumulation_steps: 8     # effective batch 32
+    warmup_ratio: 0.05
+    weight_decay: 0.01
+    max_seq_length: 2048
+    bf16: true
+    gradient_checkpointing: true
+  prompt_template: |
+    Given the following database schema and question, generate a SQL query.
+
+    Schema: {schema}
+
+    {few_shot_examples}
+
+    Question: {question}
+    SQL:
+
+# === Phase 6: GSPO RL ===
+gspo:
+  output_dir: ./checkpoints/gspo
+  config:
+    importance_sampling: sequence   # GSPO 핵심
+    dr_grpo_loss: true              # Dr.GRPO 패치
+    num_generations: 8              # K=8 candidates per prompt
+    max_prompt_length: 1024
+    max_completion_length: 512
+    per_device_train_batch_size: 2
+    gradient_accumulation_steps: 8
+    num_train_epochs: 3
+    learning_rate: 1.0e-5
+    kl_coef: 0.05
+    temperature: 0.7
+    top_p: 0.95
+    bf16: true
+    gradient_checkpointing: true
+  vllm:
+    enable: true
+    gpu_memory_utilization: 0.4
+  monitoring:
+    kl_explosion_threshold: 0.5     # KL > 0.5 시 알림
+    log_every: 10
+    save_every: 500
+
+# === Phase 7: Reranker ===
+reranker:
+  K: 8
+  temperature: 0.7
+  top_p: 0.95
+  selection: argmax       # alternative: weighted_vote
+
+# === Phase 8: Evaluation ===
+eval:
+  dev_size: 1534          # BIRD Dev 전체
+  metrics: [EX, Cx_EX, F1_per_construct]
+  bootstrap_n: 500        # 신뢰구간 계산용
+
+# === Phase 9: Ablation ===
+ablation:
+  conditions:
+    - name: base
+      retrieval: false
+      sft: false
+      rl: null
+      reranker: false
+    - name: +sft
+      retrieval: false
+      sft: true
+      rl: null
+      reranker: false
+    - name: +grpo
+      retrieval: false
+      sft: true
+      rl: grpo
+      reranker: false
+    - name: +gspo
+      retrieval: false
+      sft: true
+      rl: gspo
+      reranker: false
+    - name: +ca-retrieval
+      retrieval: true
+      sft: true
+      rl: gspo
+      reranker: false
+    - name: +reranker
+      retrieval: true
+      sft: true
+      rl: gspo
+      reranker: true
+    - name: oracle
+      retrieval: true
+      sft: true
+      rl: gspo
+      reranker: true
+      use_oracle_predictor: true
+
+# === Hyperparameter grid ===
+grid:
+  lambda_construct: [0.0, 0.1, 0.2, 0.3, 0.5]
+  K: [4, 8, 16]
+  kl_coef: [0.01, 0.05, 0.1, 0.2]
+  epsilon: [0.1, 0.2, 0.3]
+
+# === Logging ===
+logging:
+  wandb_project: ccg-sql
+  log_level: INFO
+  seed: 42
