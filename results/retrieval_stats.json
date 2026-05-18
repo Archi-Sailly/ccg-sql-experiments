@@ -1,0 +1,217 @@
+{
+  "corpus_path": "data/combined_train_labeled.json",
+  "n_corpus": 8780,
+  "encoder": "sentence-transformers/all-MiniLM-L6-v2",
+  "stage1_top_k": 500,
+  "stage2_top_k": 8,
+  "semantic_weight": 0.6,
+  "lexical_weight": 0.4,
+  "alpha_cm": 0.2,
+  "construct_distribution": {
+    "Window": 1000,
+    "HAVING": 1200,
+    "plain": 4500,
+    "EXISTS": 880,
+    "CTE": 1200
+  },
+  "source_distribution": {
+    "SynSQL-2.5M": 2833,
+    "BIRD": 4549,
+    "Gretel": 1398
+  },
+  "embedding_dim": 384,
+  "artefacts": {
+    "corpus": "data/retrieval_corpus.json",
+    "bm25": "data/retrieval_bm25.pkl",
+    "faiss": "data/retrieval_index.faiss",
+    "embeddings": "data/retrieval_embeddings.npy"
+  },
+  "demo": [
+    {
+      "query_question": "What is the highest eligible free rate for K-12 students in the schools in Alameda County?",
+      "query_target_construct": "plain",
+      "top_hits": [
+        {
+          "rank": 1,
+          "score": 0.737004820527408,
+          "question": "Among the schools whose donators are teachers, what is the percentage of schools that are in Brooklyn?",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 2,
+          "score": 0.7346901726740311,
+          "question": "How many schools in the West New York School District have the highest poverty level?",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 3,
+          "score": 0.713319059642179,
+          "question": "What are the cumulative numbers of students enrolled, cumulative student-teacher ratios, and cumulative percentages of s",
+          "target_construct": "Window",
+          "source": "SynSQL-2.5M"
+        },
+        {
+          "rank": 4,
+          "score": 0.6770012029782926,
+          "question": "Among the schools donated by donor \"000eebf28658900e63b538cf8a73afbd\",how many schools whose poverty level are highest?",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 5,
+          "score": 0.6626639698628689,
+          "question": "In year 2010 at schools located in Hawaii, what is the percentage of schools offers an associate's degree?",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 6,
+          "score": 0.6590932179259368,
+          "question": "What is the percentage of the number of 4-year public schools from Madison Area Technical College's home state in the Al",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 7,
+          "score": 0.6570288087227774,
+          "question": "What are the special notes for the country whose average adolescent fertility rate is the highest?",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 8,
+          "score": 0.6482870965875063,
+          "question": "List all the streets with more than 10 restaurants in Alameda county.",
+          "target_construct": "HAVING",
+          "source": "BIRD"
+        }
+      ]
+    },
+    {
+      "query_question": "Please list the lowest three eligible free rates for students aged 5-17 in continuation schools.",
+      "query_target_construct": "plain",
+      "top_hits": [
+        {
+          "rank": 1,
+          "score": 0.7822135150098348,
+          "question": "List all the comments on the lowest rated Mature 17+ app.",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 2,
+          "score": 0.768636421682394,
+          "question": "Please list three businesses with the lowest total sales from last year.",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 3,
+          "score": 0.6889226389258494,
+          "question": "What are the cumulative numbers of students enrolled, cumulative student-teacher ratios, and cumulative percentages of s",
+          "target_construct": "Window",
+          "source": "SynSQL-2.5M"
+        },
+        {
+          "rank": 4,
+          "score": 0.6705614557053408,
+          "question": "List down the enrolled schools and duration of student214.",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 5,
+          "score": 0.6337217668980886,
+          "question": "Please list the mountains in the country with the lowest inflation rate.",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 6,
+          "score": 0.6316389469376436,
+          "question": "List the poverty level of all the schools that received donations with the zip code \"7079\".",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 7,
+          "score": 0.6311999859638098,
+          "question": "Please list any 3 product numbers with the lowest standard cost.",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 8,
+          "score": 0.6243071455906204,
+          "question": "Please list the male students that are disabled and have filed for bankruptcy.",
+          "target_construct": "plain",
+          "source": "BIRD"
+        }
+      ]
+    },
+    {
+      "query_question": "Please list the zip code of all the charter schools in Fresno County Office of Education.",
+      "query_target_construct": "plain",
+      "top_hits": [
+        {
+          "rank": 1,
+          "score": 0.885662591437097,
+          "question": "List the poverty level of all the schools that received donations with the zip code \"7079\".",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 2,
+          "score": 0.7670226312917794,
+          "question": "List all the items from \"Sax Arts & Crafts\" and the zip code of the schools that received them.",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 3,
+          "score": 0.7387800405056484,
+          "question": "Show the zip code of the county represented by Buchanan Vernon.",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 4,
+          "score": 0.6963673305828215,
+          "question": "List all the zip codes in the county of New Castle in Delaware.",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 5,
+          "score": 0.6459214320619016,
+          "question": "Please list the zip_codes of all the residential areas in Huntingdon county with over 30 employees.",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 6,
+          "score": 0.630327114103409,
+          "question": "Provide the alias and elevation of the city with zip code 1028.",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 7,
+          "score": 0.6184322337900021,
+          "question": "What is the average total donations received by Fresno County colleges?",
+          "target_construct": "plain",
+          "source": "BIRD"
+        },
+        {
+          "rank": 8,
+          "score": 0.5927556117323138,
+          "question": "Please list the zip codes of the offices where all the male employees with a good job performance work at.",
+          "target_construct": "plain",
+          "source": "BIRD"
+        }
+      ]
+    }
+  ]
+}
