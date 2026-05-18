@@ -1,0 +1,23 @@
+{
+  "train_total": 8780,
+  "train_distribution": {
+    "Window": 1000,
+    "HAVING": 1200,
+    "plain": 4500,
+    "EXISTS": 880,
+    "CTE": 1200
+  },
+  "train_source_distribution": {
+    "SynSQL-2.5M": 2833,
+    "BIRD": 4549,
+    "Gretel": 1398
+  },
+  "target_per_class": {
+    "plain": 4500,
+    "HAVING": 1200,
+    "EXISTS": 1000,
+    "Window": 1000,
+    "CTE": 1200
+  },
+  "note": "Combined BIRD + SynSQL-2.5M + Gretel synthetic_text_to_sql"
+}

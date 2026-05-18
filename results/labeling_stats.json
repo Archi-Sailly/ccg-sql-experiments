@@ -1,0 +1,38 @@
+{
+  "train": {
+    "total": 9428,
+    "distribution": {
+      "plain": 9288,
+      "HAVING": 135,
+      "EXISTS": 0,
+      "Window": 5,
+      "CTE": 0
+    },
+    "fractions": {
+      "plain": 0.9851506151887993,
+      "HAVING": 0.014319049639372083,
+      "EXISTS": 0.0,
+      "Window": 0.0005303351718285957,
+      "CTE": 0.0
+    },
+    "parse_failure_rate": 0.0
+  },
+  "dev": {
+    "total": 1534,
+    "distribution": {
+      "plain": 1498,
+      "HAVING": 20,
+      "EXISTS": 2,
+      "Window": 5,
+      "CTE": 9
+    },
+    "fractions": {
+      "plain": 0.9765319426336375,
+      "HAVING": 0.01303780964797914,
+      "EXISTS": 0.001303780964797914,
+      "Window": 0.003259452411994785,
+      "CTE": 0.005867014341590613
+    },
+    "parse_failure_rate": 0.0
+  }
+}
