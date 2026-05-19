@@ -1,0 +1,62 @@
+{
+  "adapter": "checkpoints/gspo/final",
+  "strategy": "weighted_vote",
+  "K": 8,
+  "n_eval": 1534,
+  "EX": {
+    "mean": 0.0,
+    "ci_lo": 0.0,
+    "ci_hi": 0.0
+  },
+  "Cx_EX": {
+    "mean": 0.0,
+    "ci_lo": 0.0,
+    "ci_hi": 0.0
+  },
+  "per_class_f1": {
+    "plain": {
+      "precision": 0.990909090909091,
+      "recall": 0.7276368491321762,
+      "f1": 0.8391070053887605,
+      "support": 1498
+    },
+    "HAVING": {
+      "precision": 0.2413793103448276,
+      "recall": 0.7,
+      "f1": 0.358974358974359,
+      "support": 20
+    },
+    "EXISTS": {
+      "precision": 0.008771929824561403,
+      "recall": 0.5,
+      "f1": 0.017241379310344827,
+      "support": 2
+    },
+    "Window": {
+      "precision": 0.2631578947368421,
+      "recall": 1.0,
+      "f1": 0.4166666666666667,
+      "support": 5
+    },
+    "CTE": {
+      "precision": 0.0205761316872428,
+      "recall": 0.5555555555555556,
+      "f1": 0.03968253968253968,
+      "support": 9
+    }
+  },
+  "construct_distribution_pred": {
+    "plain": 1100,
+    "HAVING": 58,
+    "EXISTS": 114,
+    "Window": 19,
+    "CTE": 243
+  },
+  "construct_distribution_gold": {
+    "plain": 1498,
+    "HAVING": 20,
+    "EXISTS": 2,
+    "Window": 5,
+    "CTE": 9
+  }
+}
