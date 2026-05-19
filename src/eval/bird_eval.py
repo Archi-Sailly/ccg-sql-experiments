@@ -232,7 +232,10 @@ def main() -> None:
     bird_train_root = Path("data/bird/train/train_databases")
     if not bird_train_root.exists():
         cand = next(iter(Path("data/bird/train").rglob("train_databases")), None)
+        if not cand:
+            cand = next(iter(Path("data/bird").rglob("train_databases")), None)
         if cand: bird_train_root = cand
+    logger.info("bird_train_root: %s (exists=%s)", bird_train_root, bird_train_root.exists())
     schema_cache: dict[str, str] = {}
     prompts = []
     meta = []
