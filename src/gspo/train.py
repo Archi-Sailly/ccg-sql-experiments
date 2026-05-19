@@ -188,12 +188,7 @@ def main() -> None:
         bf16=train_cfg.get("bf16", True),
         gradient_checkpointing=train_cfg.get("gradient_checkpointing", True),
         num_generations=train_cfg["num_generations"],
-        max_prompt_length=train_cfg["max_prompt_length"],
-        max_completion_length=train_cfg["max_completion_length"],
         beta=train_cfg["kl_coef"],
-        temperature=train_cfg["temperature"],
-        top_p=train_cfg["top_p"],
-        importance_sampling_level="sequence",  # GSPO
         logging_steps=10,
         save_steps=gspo_cfg["monitoring"]["save_every"],
         save_total_limit=3,
