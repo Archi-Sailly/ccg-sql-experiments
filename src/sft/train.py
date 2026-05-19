@@ -88,6 +88,7 @@ def main() -> None:
 
     # Tokenizer
     tokenizer = AutoTokenizer.from_pretrained(base_model_id, trust_remote_code=True)
+    tokenizer.model_max_length = train_cfg["max_seq_length"]
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -144,7 +145,6 @@ def main() -> None:
         weight_decay=train_cfg["weight_decay"],
         bf16=train_cfg.get("bf16", True),
         gradient_checkpointing=train_cfg.get("gradient_checkpointing", True),
-        max_seq_length=train_cfg["max_seq_length"],
         logging_steps=10,
         save_steps=200,
         save_total_limit=3,
@@ -158,7 +158,7 @@ def main() -> None:
         model=model,
         args=sft_args,
         train_dataset=train_ds,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
     )
 
     # Resume detection
