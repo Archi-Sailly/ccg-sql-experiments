@@ -1,0 +1,20 @@
+{
+  "base_model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+  "n_train": 4549,
+  "num_epochs": 2,
+  "lora": {
+    "r": 16,
+    "alpha": 32,
+    "dropout": 0.05,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ]
+  },
+  "output_dir": "checkpoints/sft_qwencoder",
+  "final_adapter": "checkpoints/sft_qwencoder/final"
+}
