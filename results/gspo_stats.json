@@ -1,6 +1,6 @@
 {
-  "base_model": "Qwen/Qwen3-8B",
-  "sft_adapter": "checkpoints/sft/final",
+  "base_model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+  "sft_adapter": "checkpoints/sft_qwencoder/final",
   "n_train": 249,
   "gspo_config": {
     "importance_sampling": "sequence",
