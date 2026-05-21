@@ -1,0 +1,40 @@
+{
+  "accuracy": 0.7861799217731421,
+  "macro_f1": 0.20811929704905063,
+  "weighted_f1": 0.8621027695889848,
+  "per_class": {
+    "plain": {
+      "precision": 0.9811629811629812,
+      "recall": 0.7997329773030708,
+      "f1-score": 0.8812063258550937,
+      "support": 1498.0
+    },
+    "HAVING": {
+      "precision": 0.06593406593406594,
+      "recall": 0.3,
+      "f1-score": 0.10810810810810811,
+      "support": 20.0
+    },
+    "EXISTS": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 2.0
+    },
+    "Window": {
+      "precision": 0.0273972602739726,
+      "recall": 0.4,
+      "f1-score": 0.05128205128205128,
+      "support": 5.0
+    },
+    "CTE": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 9.0
+    }
+  },
+  "n_eval": 1534,
+  "predictor_path": "/content/drive/MyDrive/ccg-sql-experiments-workspace/phase2-results/predictor_logreg.pkl",
+  "label_key_used": "target_construct"
+}

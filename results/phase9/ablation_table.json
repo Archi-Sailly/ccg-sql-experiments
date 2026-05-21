@@ -1,8 +1,15 @@
 {
   "base": {
-    "note": "missing: /content/drive/MyDrive/ccg-sql-experiments-workspace/phase9-results/base_only_results/eval_metrics.json"
+    "EX_pct": 49.09,
+    "EX_CI": [
+      46.54,
+      51.63
+    ],
+    "Cx_EX_pct": 32.41,
+    "per_class_f1": {},
+    "n_eval": 1534
   },
-  "sft_only": {
+  "sft": {
     "EX_pct": 0.65,
     "EX_CI": [
       0.26,
@@ -33,5 +40,10 @@
       "CTE": 0.0
     },
     "n_eval": 1534
+  },
+  "predictor": {
+    "accuracy_pct": 78.62,
+    "macro_f1_pct": 20.81,
+    "weighted_f1_pct": 86.21
   }
 }
