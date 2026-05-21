@@ -1,0 +1,37 @@
+{
+  "base": {
+    "note": "missing: /content/drive/MyDrive/ccg-sql-experiments-workspace/phase9-results/base_only_results/eval_metrics.json"
+  },
+  "sft_only": {
+    "EX_pct": 0.65,
+    "EX_CI": [
+      0.26,
+      1.11
+    ],
+    "Cx_EX_pct": 0.59,
+    "per_class_f1": {
+      "plain": 98.4,
+      "HAVING": 43.24,
+      "EXISTS": 0.0,
+      "Window": 0.0,
+      "CTE": 0.0
+    },
+    "n_eval": 1534
+  },
+  "sft_gspo": {
+    "EX_pct": 12.45,
+    "EX_CI": [
+      10.85,
+      14.15
+    ],
+    "Cx_EX_pct": 12.32,
+    "per_class_f1": {
+      "plain": 98.47,
+      "HAVING": 36.0,
+      "EXISTS": 0.0,
+      "Window": 0.0,
+      "CTE": 0.0
+    },
+    "n_eval": 1534
+  }
+}
