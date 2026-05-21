@@ -1,0 +1,66 @@
+{
+  "synsql": {
+    "targets": {
+      "CTE": 5000,
+      "Window": 4000,
+      "EXISTS": 4000,
+      "HAVING": 2000,
+      "plain": 0
+    },
+    "scanned": 300001,
+    "parsed": 299995,
+    "parse_fail": 5,
+    "schema_synth_fail": 0,
+    "collected_per_class": {
+      "CTE": 5000,
+      "Window": 2764,
+      "EXISTS": 529,
+      "HAVING": 2000,
+      "plain": 0
+    },
+    "total_collected": 10293
+  },
+  "gretel": {
+    "targets": {
+      "Window": 2000,
+      "CTE": 1500,
+      "EXISTS": 1000,
+      "HAVING": 500,
+      "plain": 0
+    },
+    "scanned": 100000,
+    "parsed": 99998,
+    "parse_fail": 2,
+    "collected_per_class": {
+      "Window": 2000,
+      "CTE": 274,
+      "EXISTS": 128,
+      "HAVING": 500,
+      "plain": 0
+    },
+    "total_collected": 2902
+  },
+  "combined": {
+    "bird": 9428,
+    "synsql": 10293,
+    "gretel": 2902,
+    "total": 22623,
+    "per_class": {
+      "unknown": 9428,
+      "CTE": 5274,
+      "Window": 4764,
+      "EXISTS": 657,
+      "HAVING": 2500
+    },
+    "per_source": {
+      "bird": 9428,
+      "synsql": 10293,
+      "gretel": 2902
+    }
+  },
+  "artifacts": {
+    "synsql_schema_aug": "/content/drive/MyDrive/ccg-sql-experiments-workspace/phase10-results/schema_aug_data/synsql_schema_aug.json",
+    "gretel_schema_aug": "/content/drive/MyDrive/ccg-sql-experiments-workspace/phase10-results/schema_aug_data/gretel_schema_aug.json",
+    "combined": "/content/drive/MyDrive/ccg-sql-experiments-workspace/phase10-results/schema_aug_data/bird_plus_schema_aug_train.json"
+  }
+}

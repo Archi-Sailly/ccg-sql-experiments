@@ -1,0 +1,406 @@
+{
+  "synsql_sample": [
+    {
+      "db_id": "synsql_cte_00000",
+      "question": "Could you please gather the descriptions of all public code snippets that were successfully used, have low explanation quality, and were uploaded by users who have uploaded more than one snippet?",
+      "SQL": "WITH ActiveUsers AS (\n    SELECT uploaded_by\n    FROM code_snippets\n    GROUP BY uploaded_by\n    HAVING COUNT(snippet_id) > 1\n),\nPublicSnippets AS (\n    SELECT snippet_id, description\n    FROM code_snippets\n    INNER JOIN ActiveUsers ON ActiveUsers.uploaded_by = code_snippets.uploaded_by\n    WHERE is_public = 1\n),\nSuccessfulUses AS (\n    SELECT snippet_id\n    FROM snippet_usage\n    WHERE is_successful = 1\n),\nLowQualitySnippets AS (\n    SELECT ps.snippet_id, ps.description\n    FROM PublicSnippets ps\n    INNER JOIN SuccessfulUses su ON ps.snippet_id = su.snippet_id\n    INNER JOIN quality_scores qs ON ps.snippet_id = qs.snippet_id\n    WHERE qs.explanation_quality = 0\n)\nSELECT description\nFROM LowQualitySnippets;",
+      "schema": "CREATE TABLE ActiveUsers (\n    uploaded_by TEXT\n);\n\nCREATE TABLE LowQualitySnippets (\n    description TEXT,\n    is_public TEXT,\n    is_successful TEXT,\n    snippet_id INTEGER,\n    uploaded_by TEXT\n);\n\nCREATE TABLE PublicSnippets (\n    description TEXT,\n    snippet_id INTEGER\n);\n\nCREATE TABLE SuccessfulUses (\n    snippet_id INTEGER\n);\n\nCREATE TABLE code_snippets (\n    uploaded_by TEXT\n);\n\nCREATE TABLE quality_scores (\n    explanation_quality TEXT,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_usage (\n    id TEXT PRIMARY KEY\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00001",
+      "question": "**User**: I want to find information about users who have used certain code snippets.\n**Assistant**: Which users are you interested in?\n**User**: I'm looking for a specific user with ID 1.\n**Assistant**: What kind of usage are you interested in?\n**User**: Only successful usage events.\n**Assistant**: That's helpful. What do you want to know about these usage events?\n**User**: I want to know the top users who used the most frequently used snippets by this user.\n**Assistant**: How do you define top users?\n**User**: The ones who used the top 3 most frequently used snippets.\n**Assistant**: And what information would you like to know about these top users?\n**User**: I just need their names.\n**Assistant**: OK, I will help you translate your request into an SQL query.",
+      "SQL": "WITH UserSnippets AS (\n    SELECT\n        snippet_id\n    FROM\n        snippet_usage\n    WHERE\n        user_id = 1\n        AND is_successful = 1\n),\nSnippetUsages AS (\n    SELECT\n        su.user_id,\n        COUNT(*) AS usage_count\n    FROM\n        snippet_usage su\n    INNER JOIN\n        UserSnippets us ON su.snippet_id = us.snippet_id\n    WHERE\n        su.user_id != 1\n        AND su.is_successful = 1\n    GROUP BY\n        su.user_id\n),\nRankedUsers AS (\n    SELECT\n        su.user_id,\n        u.user_name,\n        su.usage_count,\n        RANK() OVER (ORDER BY su.usage_count DESC) AS rank\n    FROM\n        SnippetUsages su\n    INNER JOIN\n        users u ON su.user_id = u.user_id\n)\nSELECT\n    user_name\nFROM\n    RankedUsers\nWHERE\n    rank <= 3;",
+      "schema": "CREATE TABLE RankedUsers (\n    is_successful TEXT,\n    rank TEXT,\n    snippet_id INTEGER,\n    user_id INTEGER,\n    user_name TEXT\n);\n\nCREATE TABLE SnippetUsages (\n    is_successful TEXT,\n    snippet_id INTEGER,\n    usage_count REAL,\n    user_id INTEGER\n);\n\nCREATE TABLE UserSnippets (\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_usage (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE users (\n    user_id INTEGER,\n    user_name TEXT\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00002",
+      "question": "What is the cumulative ROUGE-1 F1 score of each code snippet, ordered by snippet ID?",
+      "SQL": "WITH TotalRouge1F AS (\n    SELECT \n        snippet_id,\n        SUM(rouge_1_f) AS total_rouge_1_f_score\n    FROM \n        quality_scores\n    GROUP BY \n        snippet_id\n),\nCumulativeRouge1F AS (\n    SELECT \n        snippet_id,\n        SUM(total_rouge_1_f_score) OVER (ORDER BY snippet_id) AS cumulative_rouge_1_f_score\n    FROM \n        TotalRouge1F\n)\nSELECT \n    snippet_id,\n    cumulative_rouge_1_f_score\nFROM \n    CumulativeRouge1F\nORDER BY \n    snippet_id;",
+      "schema": "CREATE TABLE CumulativeRouge1F (\n    cumulative_rouge_1_f_score REAL,\n    rouge_1_f REAL,\n    snippet_id INTEGER,\n    total_rouge_1_f_score REAL\n);\n\nCREATE TABLE TotalRouge1F (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE quality_scores (\n    id TEXT PRIMARY KEY\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00003",
+      "question": "Could you please gather the IDs of the top 10 code snippets with the highest popularity, considering their successful usages, positive ratings, and comments?",
+      "SQL": "WITH SuccessfulUsageCount AS (\n    SELECT \n        snippet_id,\n        SUM(CASE WHEN is_successful = 1 THEN 1 ELSE 0 END) AS successful_usages\n    FROM snippet_usage\n    GROUP BY snippet_id\n),\nPositiveRatingCount AS (\n    SELECT \n        snippet_id,\n        SUM(CASE WHEN rating_value >= 4 THEN 1 ELSE 0 END) AS positive_ratings\n    FROM snippet_ratings\n    GROUP BY snippet_id\n),\nCommentCount AS (\n    SELECT \n        snippet_id,\n        COUNT(*) AS comment_count\n    FROM snippet_comments\n    GROUP BY snippet_id\n),\nPopularityScore AS (\n    SELECT \n        su.snippet_id,\n        (su.successful_usages * 10 + pr.positive_ratings * 5 + COALESCE(c.comment_count, 0) * 2) AS popularity_score\n    FROM SuccessfulUsageCount su\n    LEFT JOIN PositiveRatingCount pr ON su.snippet_id = pr.snippet_id\n    LEFT JOIN CommentCount c ON su.snippet_id = c.snippet_id\n),\nRankedSnippets AS (\n    SELECT\n        snippet_id,\n        RANK() OVER (ORDER BY popularity_score DESC) AS snippet_rank\n    FROM PopularityScore\n)\nSELECT \n    snippet_id\nFROM RankedSnippets\nWHERE snippet_rank <= 10;",
+      "schema": "CREATE TABLE CommentCount (\n    comment_count REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE PopularityScore (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE PositiveRatingCount (\n    positive_ratings REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE RankedSnippets (\n    is_successful REAL,\n    popularity_score REAL,\n    rating_value REAL,\n    snippet_id INTEGER,\n    snippet_rank TEXT\n);\n\nCREATE TABLE SuccessfulUsageCount (\n    snippet_id INTEGER,\n    successful_usages REAL\n);\n\nCREATE TABLE snippet_comments (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE snippet_ratings (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE snippet_usage (\n    id TEXT PRIMARY KEY\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00004",
+      "question": "**User**: I want to know about the ranking of code snippets.\n**Assistant**: What factors would you like to consider for ranking the code snippets?\n**User**: I'd like to consider their quality scores, usage counts, ratings, and comment counts.\n**Assistant**: How would you like to prioritize these factors?\n**User**: I'd like to prioritize them in the order of quality score, rating, usage count, and then comment count, all in descending order.\n**Assistant**: Would you like to get the top-ranked snippet or a list of snippets?\n**User**: I just need the top-ranked snippet.\n**Assistant**: OK, I will help you translate your request into an SQL query.",
+      "SQL": "WITH QualityScores AS (\n    SELECT \n        snippet_id,\n        AVG(rouge_1_f) AS avg_quality_score\n    FROM \n        quality_scores\n    GROUP BY \n        snippet_id\n),\nUsageStats AS (\n    SELECT \n        snippet_id,\n        COUNT(*) AS usage_count\n    FROM \n        snippet_usage\n    GROUP BY \n        snippet_id\n),\nRatingsAnalysis AS (\n    SELECT \n        snippet_id,\n        AVG(rating_value) AS avg_rating\n    FROM \n        snippet_ratings\n    GROUP BY \n        snippet_id\n),\nCommentsAnalysis AS (\n    SELECT \n        snippet_id,\n        COUNT(*) AS comment_count\n    FROM \n        snippet_comments\n    GROUP BY \n        snippet_id\n),\nSnippetOverview AS (\n    SELECT \n        cs.snippet_id,\n        qs.avg_quality_score,\n        us.usage_count,\n        ra.avg_rating,\n        ca.comment_count\n    FROM \n        code_snippets cs\n    LEFT JOIN \n        QualityScores qs ON cs.snippet_id = qs.snippet_id\n    LEFT JOIN \n        UsageStats us ON cs.snippet_id = us.snippet_id\n    LEFT JOIN \n        RatingsAnalysis ra ON cs.snippet_id = ra.snippet_id\n    LEFT JOIN \n        CommentsAnalysis ca ON cs.snippet_id = ca.snippet_id\n),\nRankedSnippets AS (\n    SELECT \n        snippet_id,\n        RANK() OVER (\n            ORDER BY \n                avg_quality_score DESC, \n                avg_rating DESC, \n                usage_count DESC, \n                comment_count DESC\n        ) AS snippet_rank\n    FROM \n        SnippetOverview\n)\nSELECT \n    snippet_id\nFROM \n    RankedSnippets\nWHERE \n    snippet_rank = 1\nLIMIT 1;",
+      "schema": "CREATE TABLE CommentsAnalysis (\n    comment_count REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE QualityScores (\n    avg_quality_score REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE RankedSnippets (\n    avg_quality_score REAL,\n    avg_rating TEXT,\n    comment_count REAL,\n    rating_value REAL,\n    rouge_1_f REAL,\n    snippet_id INTEGER,\n    snippet_rank TEXT,\n    usage_count REAL\n);\n\nCREATE TABLE RatingsAnalysis (\n    avg_rating TEXT,\n    snippet_id INTEGER\n);\n\nCREATE TABLE SnippetOverview (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE UsageStats (\n    snippet_id INTEGER,\n    usage_count REAL\n);\n\nCREATE TABLE code_snippets (\n    snippet_id INTEGER\n);\n\nCREATE TABLE quality_scores (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE snippet_comments (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE snippet_ratings (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE snippet_usage (\n    id TEXT PRIMARY KEY\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00005",
+      "question": "Find the top 5 most renowned publicly available code snippets, along with their authors, based on their exceptional ratings and widespread adoption.",
+      "SQL": "WITH RatedSnippets AS (\n    SELECT \n        s.snippet_id, \n        s.description, \n        u.user_name, \n        AVG(r.rating_value) AS avg_rating, \n        COUNT(us.usage_id) AS usage_count\n    FROM \n        code_snippets s\n    JOIN \n        snippet_ratings r ON s.snippet_id = r.snippet_id\n    JOIN \n        snippet_usage us ON s.snippet_id = us.snippet_id\n    JOIN \n        users u ON s.uploaded_by = u.user_id\n    WHERE \n        s.is_public = 1\n    GROUP BY \n        s.snippet_id, u.user_name\n),\nRankedSnippets AS (\n    SELECT \n        description, \n        user_name, \n        avg_rating, \n        usage_count,\n        RANK() OVER (ORDER BY avg_rating DESC, usage_count DESC) AS rank\n    FROM \n        RatedSnippets\n    WHERE \n        avg_rating >= 4\n)\nSELECT \n    description, \n    user_name, \n    avg_rating, \n    usage_count\nFROM \n    RankedSnippets\nWHERE \n    rank <= 5;",
+      "schema": "CREATE TABLE RankedSnippets (\n    avg_rating TEXT,\n    description TEXT,\n    rank TEXT,\n    usage_count REAL,\n    user_name TEXT\n);\n\nCREATE TABLE RatedSnippets (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE code_snippets (\n    description TEXT,\n    is_public TEXT,\n    snippet_id INTEGER,\n    uploaded_by TEXT\n);\n\nCREATE TABLE snippet_ratings (\n    rating_value REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_usage (\n    snippet_id INTEGER,\n    usage_id INTEGER\n);\n\nCREATE TABLE users (\n    user_id INTEGER,\n    user_name TEXT\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00006",
+      "question": "Find the top-rated masterpieces in the public library, uncovering the author of each gem and its average acclaim, while disregarding hidden and questionable works; Who are the virtuosos behind the top 3 most celebrated code snippets?",
+      "SQL": "WITH RatedSnippets AS (\n    SELECT\n        s.snippet_id,\n        s.description,\n        u.user_name,\n        AVG(r.rating_value) AS average_rating\n    FROM\n        code_snippets s\n    JOIN\n        users u ON s.uploaded_by = u.user_id\n    JOIN\n        snippet_ratings r ON s.snippet_id = r.snippet_id\n    WHERE\n        s.is_public = 1 AND s.is_archived = 0 AND r.is_flagged = 0\n    GROUP BY\n        s.snippet_id, s.description, u.user_name\n),\nRankedSnippets AS (\n    SELECT\n        snippet_id,\n        description,\n        user_name,\n        average_rating,\n        ROW_NUMBER() OVER (ORDER BY average_rating DESC) AS snippet_rank\n    FROM\n        RatedSnippets\n)\nSELECT\n    description,\n    user_name,\n    average_rating\nFROM\n    RankedSnippets\nWHERE\n    snippet_rank <= 3;",
+      "schema": "CREATE TABLE RankedSnippets (\n    average_rating TEXT,\n    description TEXT,\n    snippet_id INTEGER,\n    snippet_rank TEXT,\n    user_name TEXT\n);\n\nCREATE TABLE RatedSnippets (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE code_snippets (\n    description TEXT,\n    is_archived TEXT,\n    is_public TEXT,\n    snippet_id INTEGER,\n    uploaded_by TEXT\n);\n\nCREATE TABLE snippet_ratings (\n    is_flagged TEXT,\n    rating_value REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE users (\n    user_id INTEGER,\n    user_name TEXT\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00007",
+      "question": "Hey, could you find the most recently used top-rated code snippet that user 1 has rated highest? I'd love to know its description, when they last used it, and what they did with it!",
+      "SQL": "WITH TopRatedSnippets AS (\n    SELECT r.snippet_id, s.description,\n           ROW_NUMBER() OVER (PARTITION BY r.user_id ORDER BY r.rating_value DESC) as rating_rank\n    FROM snippet_ratings r\n    INNER JOIN code_snippets s ON r.snippet_id = s.snippet_id\n    WHERE r.user_id = 1\n),\nMostRecentUsage AS (\n    SELECT us.snippet_id, us.usage_date, us.usage_type,\n           ROW_NUMBER() OVER (PARTITION BY us.snippet_id ORDER BY us.usage_date DESC) as usage_rank\n    FROM snippet_usage us\n    WHERE us.user_id = 1\n)\nSELECT ts.snippet_id, ts.description, mru.usage_date, mru.usage_type\nFROM TopRatedSnippets ts\nINNER JOIN MostRecentUsage mru ON ts.snippet_id = mru.snippet_id\nWHERE ts.rating_rank = 1 AND mru.usage_rank = 1;",
+      "schema": "CREATE TABLE MostRecentUsage (\n    snippet_id INTEGER,\n    usage_date TEXT,\n    usage_rank TEXT,\n    usage_type TEXT\n);\n\nCREATE TABLE TopRatedSnippets (\n    description TEXT,\n    rating_rank TEXT,\n    snippet_id INTEGER\n);\n\nCREATE TABLE code_snippets (\n    description TEXT,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_ratings (\n    rating_value REAL,\n    snippet_id INTEGER,\n    user_id INTEGER\n);\n\nCREATE TABLE snippet_usage (\n    snippet_id INTEGER,\n    usage_date TEXT,\n    usage_type TEXT,\n    user_id INTEGER\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00008",
+      "question": "Return the IDs, descriptions, languages, uploaders, upload dates, last modified dates, quality scores, and usage data for code snippets, including the total successful and unsuccessful usages and total usage counts, ordered by the most successful and frequently used snippets first.",
+      "SQL": "WITH LatestQualityScores AS (\n    SELECT \n        snippet_id,\n        MAX(score_id) AS latest_score_id\n    FROM quality_scores\n    GROUP BY snippet_id\n),\nUsageCounts AS (\n    SELECT \n        snippet_id,\n        SUM(CASE WHEN is_successful = 1 THEN 1 ELSE 0 END) AS total_successful,\n        SUM(CASE WHEN is_successful = 0 THEN 1 ELSE 0 END) AS total_unsuccessful,\n        COUNT(*) AS total_usage\n    FROM snippet_usage\n    GROUP BY snippet_id\n)\nSELECT \n    cs.snippet_id,\n    cs.description,\n    pl.language_name,\n    u.user_name AS uploaded_by,\n    cs.upload_date,\n    cs.last_modified,\n    qs.rouge_1_r,\n    qs.rouge_1_f,\n    qs.explanation_quality,\n    qs.human_explanation,\n    uc.total_successful,\n    uc.total_unsuccessful,\n    uc.total_usage\nFROM code_snippets cs\nJOIN programming_languages pl ON cs.language_id = pl.language_id\nJOIN users u ON cs.uploaded_by = u.user_id\nLEFT JOIN LatestQualityScores lqs ON cs.snippet_id = lqs.snippet_id\nLEFT JOIN quality_scores qs ON lqs.latest_score_id = qs.score_id\nLEFT JOIN UsageCounts uc ON cs.snippet_id = uc.snippet_id\nORDER BY uc.total_successful DESC, uc.total_usage DESC;",
+      "schema": "CREATE TABLE LatestQualityScores (\n    latest_score_id INTEGER,\n    snippet_id INTEGER\n);\n\nCREATE TABLE UsageCounts (\n    snippet_id INTEGER,\n    total_successful REAL,\n    total_unsuccessful REAL,\n    total_usage REAL\n);\n\nCREATE TABLE code_snippets (\n    description TEXT,\n    is_successful REAL,\n    language_id INTEGER,\n    last_modified TEXT,\n    score_id REAL,\n    snippet_id INTEGER,\n    upload_date TEXT,\n    uploaded_by TEXT\n);\n\nCREATE TABLE programming_languages (\n    language_id INTEGER,\n    language_name TEXT\n);\n\nCREATE TABLE quality_scores (\n    explanation_quality TEXT,\n    human_explanation TEXT,\n    rouge_1_f TEXT,\n    rouge_1_r TEXT,\n    score_id INTEGER\n);\n\nCREATE TABLE snippet_usage (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE users (\n    user_id INTEGER,\n    user_name TEXT\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00009",
+      "question": "**User**: I want to get some information about the code snippets.\n**Assistant**: Which code snippets are you interested in? Are you looking for a specific ranking?\n**User**: I want to find the top-ranked snippets based on their ratings and usage.\n**Assistant**: How do you want to measure the ranking? Do you want to consider the average rating value or the number of comments?\n**User**: I want to consider both, but prioritize the average rating value and then the number of usage events.\n**Assistant**: What specific information do you want to know about these top-ranked snippets?\n**User**: I'd like to know the snippet ID, average ROUGE-1 F1 score, and the number of comments for each.\n**Assistant**: How many top-ranked snippets do you want to retrieve?\n**User**: I'd like to get the top 3.\n**Assistant**: Do you want the results in a specific order?\n**User**: Yes, order them by their ranking score.\n**Assistant**: OK, I will help you translate your request into an SQL query.",
+      "SQL": "WITH RankedSnippets AS (\n    SELECT \n        r.snippet_id,\n        AVG(q.rouge_1_f) AS avg_rouge_1_f,\n        COUNT(c.comment_id) AS comment_count,\n        AVG(r.rating_value) AS avg_rating,\n        COUNT(u.usage_id) AS usage_count,\n        RANK() OVER (ORDER BY AVG(r.rating_value) DESC, COUNT(u.usage_id) DESC) AS rank\n    FROM \n        snippet_ratings r\n    JOIN \n        quality_scores q ON r.snippet_id = q.snippet_id\n    LEFT JOIN \n        snippet_comments c ON r.snippet_id = c.snippet_id\n    LEFT JOIN \n        snippet_usage u ON r.snippet_id = u.snippet_id\n    GROUP BY \n        r.snippet_id\n)\nSELECT \n    rs.snippet_id,\n    rs.avg_rouge_1_f,\n    rs.comment_count\nFROM \n    RankedSnippets rs\nWHERE \n    rs.rank <= 3\nORDER BY \n    rs.rank;",
+      "schema": "CREATE TABLE RankedSnippets (\n    avg_rouge_1_f TEXT,\n    comment_count REAL,\n    rank TEXT,\n    snippet_id INTEGER\n);\n\nCREATE TABLE quality_scores (\n    rouge_1_f REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_comments (\n    comment_id INTEGER,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_ratings (\n    rating_value REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_usage (\n    snippet_id INTEGER,\n    usage_id INTEGER\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00010",
+      "question": "What are the descriptions and programming languages of the top 10 code snippets with the highest rating counts and average ratings, ranked in order of their popularity?",
+      "SQL": "WITH RatedSnippets AS (\n    SELECT \n        cs.snippet_id,\n        cs.description,\n        pl.language_name,\n        COUNT(sr.rating_id) AS rating_count,\n        AVG(sr.rating_value) AS avg_rating\n    FROM \n        code_snippets cs\n    INNER JOIN \n        programming_languages pl ON cs.language_id = pl.language_id\n    LEFT JOIN \n        snippet_ratings sr ON cs.snippet_id = sr.snippet_id\n    GROUP BY \n        cs.snippet_id, cs.description, pl.language_name\n),\nRankedSnippets AS (\n    SELECT \n        snippet_id,\n        description,\n        language_name,\n        rating_count,\n        avg_rating,\n        RANK() OVER (ORDER BY rating_count DESC, avg_rating DESC) AS snippet_rank\n    FROM \n        RatedSnippets\n)\nSELECT \n    snippet_id,\n    description,\n    language_name\nFROM \n    RankedSnippets\nWHERE \n    snippet_rank <= 10\nORDER BY \n    snippet_rank;",
+      "schema": "CREATE TABLE RankedSnippets (\n    avg_rating TEXT,\n    description TEXT,\n    language_name TEXT,\n    rating_count REAL,\n    snippet_id INTEGER,\n    snippet_rank TEXT\n);\n\nCREATE TABLE RatedSnippets (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE code_snippets (\n    description TEXT,\n    language_id INTEGER,\n    snippet_id INTEGER\n);\n\nCREATE TABLE programming_languages (\n    language_id INTEGER,\n    language_name TEXT\n);\n\nCREATE TABLE snippet_ratings (\n    rating_id INTEGER,\n    rating_value REAL,\n    snippet_id INTEGER\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00011",
+      "question": "Find the top 10 code snippets with the highest average ROUGE-1 F1 scores, along with their corresponding tag names, and return their unique identifiers and average quality scores.",
+      "SQL": "WITH snippet_quality AS (\n    SELECT\n        q.snippet_id,\n        AVG(q.rouge_1_f) AS avg_quality_score\n    FROM\n        quality_scores q\n    GROUP BY\n        q.snippet_id\n    ORDER BY\n        avg_quality_score DESC\n    LIMIT 10\n),\ntagged_snippets AS (\n    SELECT\n        sm.snippet_id,\n        t.tag_name\n    FROM\n        snippet_tag_mapping sm\n    JOIN\n        snippet_tags t ON sm.tag_id = t.tag_id\n)\nSELECT\n    sq.snippet_id,\n    sq.avg_quality_score,\n    ts.tag_name\nFROM\n    snippet_quality sq\nJOIN\n    tagged_snippets ts ON sq.snippet_id = ts.snippet_id;",
+      "schema": "CREATE TABLE quality_scores (\n    rouge_1_f REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_quality (\n    avg_quality_score REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_tag_mapping (\n    snippet_id INTEGER,\n    tag_id INTEGER\n);\n\nCREATE TABLE snippet_tags (\n    tag_id INTEGER,\n    tag_name TEXT\n);\n\nCREATE TABLE tagged_snippets (\n    snippet_id INTEGER,\n    tag_name TEXT\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00012",
+      "question": "Hey, can you show me the details of the most recently used public code snippets that haven't been archived? I'd love to see their IDs, descriptions, programming languages, uploaders, upload dates, last modified dates, versions, licenses, file paths, file sizes, tags, ratings, and categories. Make sure they're only the public ones that are still active.",
+      "SQL": "WITH MostRecentUsage AS (\n    SELECT\n        su.snippet_id,\n        MAX(su.usage_date) AS latest_usage_date\n    FROM snippet_usage su\n    GROUP BY su.snippet_id\n),\nSnippetDetails AS (\n    SELECT\n        cs.snippet_id,\n        cs.description,\n        pl.language_name,\n        u.user_name,\n        cs.upload_date,\n        cs.last_modified,\n        cs.version,\n        cs.license,\n        cs.file_path,\n        cs.file_size,\n        st.tag_name,\n        sr.rating_value,\n        sc.category_name\n    FROM code_snippets cs\n    INNER JOIN programming_languages pl ON cs.language_id = pl.language_id\n    INNER JOIN users u ON cs.uploaded_by = u.user_id\n    LEFT JOIN snippet_tag_mapping stm ON cs.snippet_id = stm.snippet_id\n    LEFT JOIN snippet_tags st ON stm.tag_id = st.tag_id\n    LEFT JOIN snippet_ratings sr ON cs.snippet_id = sr.snippet_id\n    LEFT JOIN snippet_category_mapping scm ON cs.snippet_id = scm.snippet_id\n    LEFT JOIN snippet_categories sc ON scm.category_id = sc.category_id\n    WHERE cs.is_public = 1\n      AND cs.is_archived = 0\n)\nSELECT\n    sd.snippet_id,\n    sd.description,\n    sd.language_name,\n    sd.user_name,\n    sd.upload_date,\n    sd.last_modified,\n    sd.version,\n    sd.license,\n    sd.file_path,\n    sd.file_size,\n    sd.tag_name,\n    sd.rating_value,\n    sd.category_name\nFROM SnippetDetails sd\nINNER JOIN MostRecentUsage mru ON sd.snippet_id = mru.snippet_id;",
+      "schema": "CREATE TABLE MostRecentUsage (\n    snippet_id INTEGER\n);\n\nCREATE TABLE SnippetDetails (\n    category_name TEXT,\n    description TEXT,\n    file_path TEXT,\n    file_size TEXT,\n    language_name TEXT,\n    last_modified TEXT,\n    license TEXT,\n    rating_value REAL,\n    snippet_id INTEGER,\n    tag_name TEXT,\n    upload_date TEXT,\n    user_name TEXT,\n    version TEXT\n);\n\nCREATE TABLE code_snippets (\n    description TEXT,\n    file_path TEXT,\n    file_size TEXT,\n    is_archived TEXT,\n    is_public TEXT,\n    language_id INTEGER,\n    last_modified TEXT,\n    license TEXT,\n    snippet_id INTEGER,\n    upload_date TEXT,\n    uploaded_by TEXT,\n    version TEXT\n);\n\nCREATE TABLE programming_languages (\n    language_id INTEGER,\n    language_name TEXT\n);\n\nCREATE TABLE snippet_categories (\n    category_id INTEGER,\n    category_name TEXT\n);\n\nCREATE TABLE snippet_category_mapping (\n    category_id INTEGER,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_ratings (\n    rating_value REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_tag_mapping (\n    snippet_id INTEGER,\n    tag_id INTEGER\n);\n\nCREATE TABLE snippet_tags (\n    tag_id INTEGER,\n    tag_name TEXT\n);\n\nCREATE TABLE snippet_usage (\n    snippet_id INTEGER,\n    usage_date REAL\n);\n\nCREATE TABLE users (\n    user_id INTEGER,\n    user_name TEXT\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00013",
+      "question": "Could you please show me the top 10 public code snippets, along with their descriptions and categories, that have the highest ROUGE-1 F1 scores, and list them in order from highest to lowest quality score?",
+      "SQL": "WITH RankedSnippets AS (\n    SELECT\n        cs.snippet_id,\n        cs.description,\n        sc.category_name,\n        qs.rouge_1_f AS quality_score,\n        ROW_NUMBER() OVER (ORDER BY qs.rouge_1_f DESC) AS rank\n    FROM\n        code_snippets cs\n        JOIN quality_scores qs ON cs.snippet_id = qs.snippet_id\n        JOIN snippet_category_mapping scm ON cs.snippet_id = scm.snippet_id\n        JOIN snippet_categories sc ON scm.category_id = sc.category_id\n    WHERE\n        cs.is_public = 1\n)\nSELECT\n    rs.snippet_id,\n    rs.description,\n    rs.category_name,\n    rs.quality_score\nFROM\n    RankedSnippets rs\nWHERE\n    rs.rank <= 10\nORDER BY\n    rs.quality_score DESC;",
+      "schema": "CREATE TABLE RankedSnippets (\n    category_name TEXT,\n    description TEXT,\n    quality_score REAL,\n    rank TEXT,\n    snippet_id INTEGER\n);\n\nCREATE TABLE code_snippets (\n    description TEXT,\n    is_public TEXT,\n    snippet_id INTEGER\n);\n\nCREATE TABLE quality_scores (\n    rouge_1_f TEXT,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_categories (\n    category_id INTEGER,\n    category_name TEXT\n);\n\nCREATE TABLE snippet_category_mapping (\n    category_id INTEGER,\n    snippet_id INTEGER\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00014",
+      "question": "What are the IDs of the snippets that user 1 has successfully copied, rated four stars, and are tagged with tag 0?",
+      "SQL": "WITH SuccessfulCopies AS (\n    SELECT snippet_id\n    FROM snippet_usage\n    WHERE user_id = 1 AND usage_type = 'copy' AND is_successful = 1\n),\nFourStarRatings AS (\n    SELECT snippet_id\n    FROM snippet_ratings\n    WHERE user_id = 1 AND rating_value = 4\n),\nTaggedSnippets AS (\n    SELECT snippet_id\n    FROM snippet_tag_mapping\n    WHERE tag_id = 0\n)\nSELECT DISTINCT sc.snippet_id\nFROM SuccessfulCopies sc\nINNER JOIN FourStarRatings fs ON sc.snippet_id = fs.snippet_id\nINNER JOIN TaggedSnippets ts ON sc.snippet_id = ts.snippet_id;",
+      "schema": "CREATE TABLE FourStarRatings (\n    snippet_id INTEGER\n);\n\nCREATE TABLE SuccessfulCopies (\n    is_successful TEXT,\n    rating_value REAL,\n    snippet_id INTEGER,\n    tag_id INTEGER,\n    usage_type TEXT,\n    user_id INTEGER\n);\n\nCREATE TABLE TaggedSnippets (\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_ratings (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE snippet_tag_mapping (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE snippet_usage (\n    id TEXT PRIMARY KEY\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00015",
+      "question": "What is the description, view count, and associated tags of the most viewed code snippet that has been successfully viewed?",
+      "SQL": "WITH SnippetUsageStats AS (\n    SELECT \n        u.snippet_id, \n        COUNT(u.usage_id) AS view_count\n    FROM \n        snippet_usage u\n    WHERE \n        u.usage_type = 'view' \n        AND u.is_successful = 1\n    GROUP BY \n        u.snippet_id\n),\nMostViewedSnippet AS (\n    SELECT \n        sus.snippet_id, \n        sus.view_count\n    FROM \n        SnippetUsageStats sus\n    ORDER BY \n        sus.view_count DESC\n    LIMIT 1\n),\nSnippetDetails AS (\n    SELECT \n        s.snippet_id, \n        s.description\n    FROM \n        code_snippets s\n    JOIN \n        MostViewedSnippet mvs \n        ON s.snippet_id = mvs.snippet_id\n),\nSnippetTags AS (\n    SELECT \n        sm.snippet_id, \n        GROUP_CONCAT(st.tag_name) AS tags\n    FROM \n        snippet_tag_mapping sm\n    JOIN \n        snippet_tags st \n        ON sm.tag_id = st.tag_id\n    GROUP BY \n        sm.snippet_id\n)\nSELECT \n    sd.snippet_id,\n    sd.description,\n    mvs.view_count,\n    st.tags\nFROM \n    MostViewedSnippet mvs\nJOIN \n    SnippetDetails sd \n    ON mvs.snippet_id = sd.snippet_id\nLEFT JOIN \n    SnippetTags st \n    ON mvs.snippet_id = st.snippet_id;",
+      "schema": "CREATE TABLE MostViewedSnippet (\n    snippet_id INTEGER,\n    view_count REAL\n);\n\nCREATE TABLE SnippetDetails (\n    description TEXT,\n    snippet_id INTEGER\n);\n\nCREATE TABLE SnippetTags (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE SnippetUsageStats (\n    snippet_id INTEGER,\n    view_count REAL\n);\n\nCREATE TABLE code_snippets (\n    description TEXT,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_tag_mapping (\n    snippet_id INTEGER,\n    tag_id INTEGER\n);\n\nCREATE TABLE snippet_tags (\n    snippet_id INTEGER,\n    tag_id INTEGER,\n    tag_name TEXT,\n    tags TEXT\n);\n\nCREATE TABLE snippet_usage (\n    is_successful TEXT,\n    snippet_id INTEGER,\n    usage_id INTEGER,\n    usage_type TEXT\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00016",
+      "question": "Find the number of successful views for the most viewed code snippet.",
+      "SQL": "WITH SuccessfulViews AS (\n    SELECT \n        snippet_id,\n        COUNT(*) AS successful_views\n    FROM \n        snippet_usage\n    WHERE \n        usage_type = 'view' AND is_successful = 1\n    GROUP BY \n        snippet_id\n),\nRankedViews AS (\n    SELECT \n        snippet_id,\n        successful_views,\n        ROW_NUMBER() OVER (ORDER BY successful_views DESC) AS rank\n    FROM \n        SuccessfulViews\n)\nSELECT \n    successful_views\nFROM \n    RankedViews\nWHERE \n    rank = 1;",
+      "schema": "CREATE TABLE RankedViews (\n    is_successful TEXT,\n    rank TEXT,\n    snippet_id INTEGER,\n    successful_views TEXT,\n    usage_type TEXT\n);\n\nCREATE TABLE SuccessfulViews (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE snippet_usage (\n    id TEXT PRIMARY KEY\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00017",
+      "question": "Find the top-rated and most frequently used math code snippets, specifically those that belong to the 'Math' category, are tagged as 'Math', have an average rating of at least 4 out of 5, and have been successfully used at least 10 times, ordered by their ranking.",
+      "SQL": "WITH AverageRatings AS (\n    SELECT snippet_id, AVG(rating_value) AS average_rating\n    FROM snippet_ratings\n    GROUP BY snippet_id\n),\nUsageCounts AS (\n    SELECT snippet_id, COUNT(*) AS total_usage\n    FROM snippet_usage\n    WHERE is_successful = 1\n    GROUP BY snippet_id\n),\nSnippetMath AS (\n    SELECT cs.snippet_id\n    FROM code_snippets cs\n    JOIN snippet_category_mapping scm ON cs.snippet_id = scm.snippet_id\n    JOIN snippet_categories sc ON scm.category_id = sc.category_id\n    JOIN snippet_tag_mapping stm ON cs.snippet_id = stm.snippet_id\n    JOIN snippet_tags st ON stm.tag_id = st.tag_id\n    WHERE sc.category_name = 'Math' AND st.tag_name = 'Math'\n)\nSELECT sm.snippet_id, ar.average_rating, uc.total_usage\nFROM SnippetMath sm\nJOIN AverageRatings ar ON sm.snippet_id = ar.snippet_id\nJOIN UsageCounts uc ON sm.snippet_id = uc.snippet_id\nWHERE ar.average_rating >= 4 AND uc.total_usage >= 10\nORDER BY ar.average_rating DESC, uc.total_usage DESC;",
+      "schema": "CREATE TABLE AverageRatings (\n    average_rating TEXT,\n    snippet_id INTEGER\n);\n\nCREATE TABLE SnippetMath (\n    is_successful TEXT,\n    rating_value REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE UsageCounts (\n    snippet_id INTEGER,\n    total_usage REAL\n);\n\nCREATE TABLE code_snippets (\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_categories (\n    category_id INTEGER,\n    category_name TEXT\n);\n\nCREATE TABLE snippet_category_mapping (\n    category_id INTEGER,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_ratings (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE snippet_tag_mapping (\n    snippet_id INTEGER,\n    tag_id INTEGER\n);\n\nCREATE TABLE snippet_tags (\n    tag_id INTEGER,\n    tag_name TEXT\n);\n\nCREATE TABLE snippet_usage (\n    id TEXT PRIMARY KEY\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00018",
+      "question": "What is the average rating of code snippets based on their quality scores, ownership, and usage?",
+      "SQL": "WITH QualityScoresAggregated AS (\n    SELECT sn.snippet_id, AVG(qs.rouge_1_f) AS avg_quality_score\n    FROM code_snippets sn\n    JOIN quality_scores qs ON sn.snippet_id = qs.snippet_id\n    GROUP BY sn.snippet_id\n),\nOwnershipAndUsage AS (\n    SELECT sn.snippet_id,\n           COUNT(DISTINCT so.user_id) AS unique_owners,\n           SUM(su.is_successful) AS total_successful_usage\n    FROM code_snippets sn\n    LEFT JOIN snippet_ownership so ON sn.snippet_id = so.snippet_id\n    LEFT JOIN snippet_usage su ON sn.snippet_id = su.snippet_id\n    GROUP BY sn.snippet_id\n),\nAverageRatingCalculation AS (\n    SELECT sn.snippet_id, AVG(sr.rating_value) AS avg_rating\n    FROM code_snippets sn\n    JOIN snippet_ratings sr ON sn.snippet_id = sr.snippet_id\n    GROUP BY sn.snippet_id\n)\nSELECT AVG(arc.avg_rating) AS average_snippet_rating\nFROM AverageRatingCalculation arc\nJOIN QualityScoresAggregated qsa ON arc.snippet_id = qsa.snippet_id\nJOIN OwnershipAndUsage oau ON arc.snippet_id = oau.snippet_id;",
+      "schema": "CREATE TABLE AverageRatingCalculation (\n    avg_rating REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE OwnershipAndUsage (\n    snippet_id INTEGER\n);\n\nCREATE TABLE QualityScoresAggregated (\n    snippet_id INTEGER\n);\n\nCREATE TABLE code_snippets (\n    snippet_id INTEGER\n);\n\nCREATE TABLE quality_scores (\n    rouge_1_f REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_ownership (\n    snippet_id INTEGER,\n    user_id INTEGER\n);\n\nCREATE TABLE snippet_ratings (\n    rating_value REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_usage (\n    is_successful REAL,\n    snippet_id INTEGER\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    },
+    {
+      "db_id": "synsql_cte_00019",
+      "question": "What are the IDs of the code snippets and their corresponding total scores, ranked in descending order based on their average ratings, number of tags, and number of categories?",
+      "SQL": "WITH AverageRatings AS (\n    SELECT\n        snippet_id,\n        AVG(rating_value) AS average_rating\n    FROM\n        snippet_ratings\n    GROUP BY\n        snippet_id\n),\nTagCounts AS (\n    SELECT\n        snippet_id,\n        COUNT(tag_id) AS tag_count\n    FROM\n        snippet_tag_mapping\n    GROUP BY\n        snippet_id\n),\nCategoryCounts AS (\n    SELECT\n        snippet_id,\n        COUNT(category_id) AS category_count\n    FROM\n        snippet_category_mapping\n    GROUP BY\n        snippet_id\n),\nFinalScores AS (\n    SELECT\n        c.snippet_id,\n        COALESCE(ar.average_rating, 0) AS average_rating,\n        COALESCE(tc.tag_count, 0) AS tag_count,\n        COALESCE(cc.category_count, 0) AS category_count,\n        (COALESCE(ar.average_rating, 0) * 2 + COALESCE(tc.tag_count, 0) * 1 + COALESCE(cc.category_count, 0) * 1) AS total_score\n    FROM\n        code_snippets c\n    LEFT JOIN\n        AverageRatings ar ON c.snippet_id = ar.snippet_id\n    LEFT JOIN\n        TagCounts tc ON c.snippet_id = tc.snippet_id\n    LEFT JOIN\n        CategoryCounts cc ON c.snippet_id = cc.snippet_id\n)\nSELECT\n    snippet_id,\n    total_score\nFROM\n    FinalScores\nORDER BY\n    total_score DESC;",
+      "schema": "CREATE TABLE AverageRatings (\n    average_rating REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE CategoryCounts (\n    category_count REAL,\n    snippet_id INTEGER\n);\n\nCREATE TABLE FinalScores (\n    category_id INTEGER,\n    rating_value REAL,\n    snippet_id INTEGER,\n    tag_id INTEGER,\n    total_score REAL\n);\n\nCREATE TABLE TagCounts (\n    snippet_id INTEGER,\n    tag_count REAL\n);\n\nCREATE TABLE code_snippets (\n    snippet_id INTEGER\n);\n\nCREATE TABLE snippet_category_mapping (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE snippet_ratings (\n    id TEXT PRIMARY KEY\n);\n\nCREATE TABLE snippet_tag_mapping (\n    id TEXT PRIMARY KEY\n);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "CTE",
+      "source": "synsql"
+    }
+  ],
+  "gretel_sample": [
+    {
+      "db_id": "gretel_window_00000",
+      "question": "Find the energy efficiency upgrades with the highest cost and their types.",
+      "SQL": "SELECT type, cost FROM (SELECT type, cost, ROW_NUMBER() OVER (ORDER BY cost DESC) as rn FROM upgrades) sub WHERE rn = 1;",
+      "schema": "CREATE TABLE upgrades (id INT, cost FLOAT, type TEXT); INSERT INTO upgrades (id, cost, type) VALUES (1, 500, 'Insulation'), (2, 1000, 'HVAC'), (3, 1500, 'Lighting');",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00001",
+      "question": "Which autonomous vehicles have the highest safety ratings in the 'auto_show' table?",
+      "SQL": "SELECT vehicle_name, safety_rating FROM (SELECT vehicle_name, safety_rating, RANK() OVER (ORDER BY safety_rating DESC) as safety_rank FROM auto_show WHERE vehicle_name LIKE '%Autonomous%') AS auton_ranks WHERE safety_rank = 1;",
+      "schema": "CREATE TABLE auto_show (id INT, vehicle_name VARCHAR(50), safety_rating INT);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00002",
+      "question": "Find the title and genre of the top 3 movies with the highest ratings from studios based in Italy, ordered by ratings in descending order.",
+      "SQL": "SELECT title, genre FROM (SELECT title, genre, studio, rating, ROW_NUMBER() OVER (PARTITION BY studio ORDER BY rating DESC) as rank FROM movies WHERE studio LIKE '%Italy%') subquery WHERE rank <= 3 ORDER BY rating DESC;",
+      "schema": "CREATE TABLE movies (title VARCHAR(255), genre VARCHAR(255), studio VARCHAR(255), rating FLOAT); INSERT INTO movies (title, genre, studio, rating) VALUES ('Movie19', 'Action', 'Italy Studio1', 8.5), ('Movie20', 'Drama', 'Italy Studio2', 9.0);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00003",
+      "question": "List the top 3 marine species with the highest population growth rate.",
+      "SQL": "SELECT name, growth_rate FROM (SELECT name, growth_rate, ROW_NUMBER() OVER (ORDER BY growth_rate DESC) rn FROM marine_species) t WHERE rn <= 3;",
+      "schema": "CREATE TABLE marine_species (id INT, name VARCHAR(255), population_size INT, growth_rate DECIMAL(4,2)); INSERT INTO marine_species (id, name, population_size, growth_rate) VALUES (1, 'Clownfish', 10000, 0.05), (2, 'Sea Turtle', 5000, 0.10), (3, 'Dolphin', 20000, 0.02);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00004",
+      "question": "Rank artists in the 'ArtistsDemographics' table by age, in descending order, and return the top 2.",
+      "SQL": "SELECT ArtistID, Age, Gender, Nationality FROM (SELECT ArtistID, Age, Gender, Nationality, ROW_NUMBER() OVER (ORDER BY Age DESC) AS Rank FROM ArtistsDemographics) AS Subquery WHERE Rank <= 2;",
+      "schema": "CREATE TABLE ArtistsDemographics (ArtistID INT, Age INT, Gender VARCHAR(10), Nationality VARCHAR(50)); INSERT INTO ArtistsDemographics (ArtistID, Age, Gender, Nationality) VALUES (1, 45, 'Male', 'American'), (2, 34, 'Female', 'Canadian'), (3, 50, 'Male', 'British'), (4, 35, 'Female', 'Mexican'), (5, 40, 'Non-binary', 'Australian');",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00005",
+      "question": "How many crimes were committed in each type of category?",
+      "SQL": "SELECT category, SUM(count) OVER (PARTITION BY category) FROM crimes;",
+      "schema": "CREATE TABLE crimes (category VARCHAR(255), count INT); INSERT INTO crimes (category, count) VALUES ('Theft', 50), ('Assault', 30), ('Vandalism', 20);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00006",
+      "question": "What is the average word count of articles related to social justice issues in the United States, published in 2021 and 2022, partitioned by quarter?",
+      "SQL": "SELECT AVG(word_count) OVER (PARTITION BY EXTRACT(YEAR_QUARTER FROM publish_date)) AS avg_word_count FROM articles WHERE category = 'social_justice' AND location = 'USA' AND YEAR(publish_date) BETWEEN 2021 AND 2022;",
+      "schema": "CREATE TABLE articles (id INT, title TEXT, category TEXT, publish_date DATE, location TEXT, word_count INT); INSERT INTO articles (id, title, category, publish_date, location, word_count) VALUES (1, 'Social Justice Issue 1', 'social_justice', '2021-01-01', 'USA', 800), (2, 'Social Justice Issue 2', 'social_justice', '2022-06-05', 'USA', 1200);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00007",
+      "question": "Delete the record of the community health worker with the lowest Age in 'AB' province.",
+      "SQL": "DELETE FROM CommunityHealthWorkersCanada WHERE WorkerID = (SELECT WorkerID FROM (SELECT WorkerID, ROW_NUMBER() OVER (PARTITION BY Province ORDER BY Age ASC) rn FROM CommunityHealthWorkersCanada) t WHERE t.rn = 1 AND t.Province = 'AB');",
+      "schema": "CREATE TABLE CommunityHealthWorkersCanada (WorkerID INT, Age INT, Gender VARCHAR(1), Province VARCHAR(2)); INSERT INTO CommunityHealthWorkersCanada (WorkerID, Age, Gender, Province) VALUES (1, 35, 'F', 'ON'), (2, 40, 'M', 'QC'), (3, 45, 'F', 'BC'), (4, 50, 'M', 'AB');",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00008",
+      "question": "Identify the 5 earliest artworks (creation date) for each artist.",
+      "SQL": "SELECT artist_id, name, creation_date FROM (SELECT artist_id, name, creation_date, ROW_NUMBER() OVER (PARTITION BY artist_id ORDER BY creation_date ASC) as rn FROM Artworks) t WHERE rn <= 5;",
+      "schema": "CREATE TABLE Artists (id INT, name TEXT); CREATE TABLE Artworks (id INT, artist_id INT, name TEXT, creation_date DATE);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00009",
+      "question": "What is the minimum time between bus cleanings for each route?",
+      "SQL": "SELECT route_id, MIN(DATEDIFF('day', LAG(clean_date) OVER (PARTITION BY route_id ORDER BY clean_date), clean_date)) FROM buses GROUP BY route_id;",
+      "schema": "CREATE TABLE buses (id INT, route_id INT, clean_date DATE); INSERT INTO buses (id, route_id, clean_date) VALUES (1, 101, '2022-01-01'), (2, 102, '2022-01-02'), (3, 103, '2022-01-03');",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00010",
+      "question": "What is the monthly production trend for a specific well?",
+      "SQL": "SELECT prod_date, production_rate, LAG(production_rate, 1) OVER (ORDER BY prod_date) AS previous_month_rate FROM production WHERE well_id = 1;",
+      "schema": "CREATE TABLE production (prod_id INT, well_id INT, prod_date DATE, production_rate FLOAT); INSERT INTO production (prod_id, well_id, prod_date, production_rate) VALUES (1, 1, '2020-01-01', 1000), (2, 1, '2020-02-01', 1100), (3, 1, '2020-03-01', 1200), (4, 1, '2020-04-01', 1300), (5, 1, '2020-05-01', 1400);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00011",
+      "question": "What is the three-year rolling average of rural infrastructure projects in Nigeria, partitioned by region?",
+      "SQL": "SELECT region, year, AVG(num_projects) OVER (PARTITION BY region ORDER BY year ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS rolling_average FROM rural_projects WHERE region IN ('North', 'South', 'East', 'West');",
+      "schema": "CREATE TABLE rural_projects (region TEXT, year INT, num_projects INT); INSERT INTO rural_projects (region, year, num_projects) VALUES ('North', 2017, 10), ('North', 2018, 15), ('North', 2019, 12), ('North', 2020, 18), ('North', 2021, 21), ('South', 2017, 15), ('South', 2018, 18), ('South', 2019, 16), ('South', 2020, 20), ('South', 2021, 23), ('East', 2017, 12), ('East', 2018, 14), ('East', 2019, 17), ('East', 2020, 22), ('East', 2021, 25), ('West', 2017, 18), ('West', 2018, 20), ('West', 2019, 23), ('West', 2020, 24), ('West', 2021, 27);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00012",
+      "question": "Find the top 5 sectors based on the total amount of grants awarded?",
+      "SQL": "SELECT Sector, SUM(Amount) OVER (PARTITION BY Sector ORDER BY SUM(Amount) DESC) AS TotalAmount, RANK() OVER (ORDER BY SUM(Amount) DESC) AS Rank FROM Grants GROUP BY Sector ORDER BY Rank;",
+      "schema": "CREATE TABLE Grants (GrantID INT, Sector TEXT, Amount DECIMAL);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00013",
+      "question": "What is the average number of hospital beds per rural clinic in India, partitioned by state?",
+      "SQL": "SELECT AVG(r.no_of_beds) as avg_beds FROM (SELECT state, no_of_beds, ROW_NUMBER() OVER (PARTITION BY state ORDER BY no_of_beds DESC) as clinic_rank FROM rural_clinics) r WHERE r.clinic_rank = 1;",
+      "schema": "CREATE TABLE rural_clinics (clinic_id INT, state VARCHAR(50), no_of_beds INT); INSERT INTO rural_clinics VALUES (1, 'Assam', 20), (2, 'Assam', 15), (3, 'Bihar', 10), (4, 'Bihar', 12); CREATE TABLE rural_hospitals (hospital_id INT, state VARCHAR(50), no_of_beds INT); INSERT INTO rural_hospitals VALUES (1, 'Assam', 500), (2, 'Assam', 600), (3, 'Bihar', 400), (4, 'Bihar', 450);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00014",
+      "question": "What is the age of the oldest artifact for each culture, grouped by excavation site?",
+      "SQL": "SELECT excavation_site, MAX(age) OVER (PARTITION BY culture_id) as oldest_artifact_age FROM ancient_artifacts JOIN ancient_cultures ON ancient_artifacts.culture_id = ancient_cultures.id GROUP BY excavation_site, culture_id;",
+      "schema": "CREATE TABLE ancient_cultures (id INT, culture VARCHAR(50)); CREATE TABLE ancient_artifacts (id INT, artifact_name VARCHAR(50), age INT, excavation_site VARCHAR(50), culture_id INT);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00015",
+      "question": "What is the total amount of Shariah-compliant financing for clients in the top 3 countries with the most Shariah-compliant financing?",
+      "SQL": "SELECT country, SUM(amount) as total_financing FROM shariah_financing WHERE country IN (SELECT country FROM (SELECT country, ROW_NUMBER() OVER (ORDER BY SUM(amount) DESC) as rank FROM shariah_financing GROUP BY country) WHERE rank <= 3) GROUP BY country;",
+      "schema": "CREATE TABLE shariah_financing(client_id INT, country VARCHAR(25), amount FLOAT);INSERT INTO shariah_financing(client_id, country, amount) VALUES (1, 'Malaysia', 5000), (2, 'UAE', 7000), (3, 'Indonesia', 6000), (4, 'Saudi Arabia', 8000), (5, 'Malaysia', 9000), (6, 'UAE', 10000), (7, 'Indonesia', 11000), (8, 'Saudi Arabia', 12000), (9, 'Malaysia', 13000), (10, 'UAE', 14000);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00016",
+      "question": "Identify companies that had a continuous increase in dysprosium production from 2018 to 2020.",
+      "SQL": "SELECT Company FROM (SELECT Company, Production, ROW_NUMBER() OVER (PARTITION BY Company ORDER BY Year) as rn, LAG(Production) OVER (PARTITION BY Company ORDER BY Year) as prev_prod FROM DysprosiumProduction) t WHERE rn > 1 AND prev_prod < Production GROUP BY Company HAVING COUNT(*) = 3;",
+      "schema": "CREATE TABLE DysprosiumProduction (Company VARCHAR(50), Year INT, Production FLOAT); INSERT INTO DysprosiumProduction(Company, Year, Production) VALUES ('CompanyA', 2018, 75.3), ('CompanyA', 2019, 82.7), ('CompanyA', 2020, 90.1), ('CompanyB', 2018, 63.9), ('CompanyB', 2019, 68.1), ('CompanyB', 2020, 73.8), ('CompanyC', 2018, 86.4), ('CompanyC', 2019, 88.2), ('CompanyC', 2020, 89.6);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00017",
+      "question": "What is the running total of donations for each supporter?",
+      "SQL": "SELECT supporter, amount, SUM(amount) OVER (ORDER BY supporter) AS running_total FROM donations;",
+      "schema": "CREATE TABLE donations (id INT, supporter INT, amount FLOAT); INSERT INTO donations (id, supporter, amount) VALUES (1, 1, 50.00), (2, 2, 100.00), (3, 3, 150.00), (4, 4, 200.00);",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00018",
+      "question": "Which programs had the highest and lowest total expenses in H1 2021?",
+      "SQL": "SELECT program_name, program_expenses FROM (SELECT program_name, program_expenses, ROW_NUMBER() OVER (ORDER BY program_expenses DESC) AS high_expense, ROW_NUMBER() OVER (ORDER BY program_expenses ASC) AS low_expense FROM programs WHERE EXTRACT(YEAR FROM program_date) = 2021 AND EXTRACT(MONTH FROM program_date) BETWEEN 1 AND 6) AS subquery WHERE high_expense = 1 OR low_expense = 1;",
+      "schema": "CREATE TABLE programs (program_id INT, program_name TEXT, program_expenses FLOAT, program_date DATE); INSERT INTO programs (program_id, program_name, program_expenses, program_date) VALUES (1, 'Education', 8000, '2021-01-01'); INSERT INTO programs (program_id, program_name, program_expenses, program_date) VALUES (2, 'Health', 5000, '2021-03-01');",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    },
+    {
+      "db_id": "gretel_window_00019",
+      "question": "What is the average playtime for each game in the \"Simulation\" category?",
+      "SQL": "SELECT Category, AVG(Playtime) OVER(PARTITION BY Category) as AvgPlaytime FROM GameStats;",
+      "schema": "CREATE TABLE GameStats (GameID int, GameName varchar(50), Category varchar(50), Playtime decimal(10,2));",
+      "evidence": "",
+      "difficulty": "moderate",
+      "construct": "Window",
+      "source": "gretel"
+    }
+  ]
+}
