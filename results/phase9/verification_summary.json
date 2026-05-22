@@ -1,0 +1,42 @@
+{
+  "base (inline, Qwen-Coder)": {
+    "EX_pct": 49.09,
+    "EX_CI": [
+      46.54,
+      51.63
+    ],
+    "Cx_EX_pct": 32.41
+  },
+  "SFT (legacy eval)": {
+    "EX_pct": 0.65,
+    "EX_CI": [
+      0.26,
+      1.11
+    ],
+    "Cx_EX_pct": 0.59
+  },
+  "SFT (inline, Qwen-Coder)": {
+    "EX_pct": 30.44,
+    "EX_CI": [
+      28.29,
+      32.99
+    ],
+    "Cx_EX_pct": 13.79
+  },
+  "GSPO (legacy eval, Qwen3-8B!)": {
+    "EX_pct": 12.45,
+    "EX_CI": [
+      10.85,
+      14.15
+    ],
+    "Cx_EX_pct": 12.32
+  },
+  "GSPO (inline, Qwen-Coder)": {
+    "EX_pct": 35.27,
+    "EX_CI": [
+      32.92,
+      37.81
+    ],
+    "Cx_EX_pct": 20.0
+  }
+}

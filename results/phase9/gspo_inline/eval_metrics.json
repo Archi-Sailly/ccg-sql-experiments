@@ -1,0 +1,16 @@
+{
+  "adapter": "/content/drive/MyDrive/ccg-sql-experiments-workspace/ccg-sql-experiments/checkpoints/gspo/final",
+  "tag": "gspo_inline",
+  "strategy": "argmax (K=1)",
+  "K": 1,
+  "n_eval": 1534,
+  "EX": {
+    "mean": 0.35267275097783574,
+    "ci_lo": 0.32920469361147325,
+    "ci_hi": 0.37809647979139505
+  },
+  "Cx_EX": {
+    "mean": 0.2,
+    "n_complex": 145
+  }
+}

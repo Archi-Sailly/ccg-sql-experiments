@@ -1,0 +1,16 @@
+{
+  "adapter": "/content/drive/MyDrive/ccg-sql-experiments-workspace/phase5qwencoder-results/sft_qwencoder_final",
+  "tag": "sft_inline",
+  "strategy": "argmax (K=1)",
+  "K": 1,
+  "n_eval": 1534,
+  "EX": {
+    "mean": 0.3044328552803129,
+    "ci_lo": 0.28292046936114734,
+    "ci_hi": 0.32985658409387225
+  },
+  "Cx_EX": {
+    "mean": 0.13793103448275862,
+    "n_complex": 145
+  }
+}
