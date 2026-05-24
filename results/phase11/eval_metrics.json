@@ -1,0 +1,17 @@
+{
+  "adapter": "/content/drive/MyDrive/ccg-sql-experiments-workspace/phase11-results/sft_schemaaug_final",
+  "tag": "phase11_sft_schemaaug",
+  "strategy": "argmax (K=1)",
+  "K": 1,
+  "n_eval": 1534,
+  "EX": {
+    "mean": 0.43741851368970014,
+    "ci_lo": 0.4106910039113429,
+    "ci_hi": 0.4634941329856584
+  },
+  "Cx_EX": {
+    "mean": 0.30344827586206896,
+    "n_complex": 145
+  },
+  "train_data_size": 22623
+}
