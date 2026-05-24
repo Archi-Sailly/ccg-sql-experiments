@@ -82,7 +82,7 @@ sft:
 
     '
 gspo:
-  output_dir: ./checkpoints/gspo
+  output_dir: checkpoints/gspo_v2
   config:
     importance_sampling: sequence
     dr_grpo_loss: true

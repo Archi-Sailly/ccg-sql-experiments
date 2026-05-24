@@ -1,0 +1,17 @@
+{
+  "adapter": "/content/drive/MyDrive/ccg-sql-experiments-workspace/phase12-results/gspo_schemaaug_final",
+  "tag": "phase12_gspo_on_schemaaug",
+  "strategy": "argmax (K=1)",
+  "K": 1,
+  "n_eval": 1534,
+  "EX": {
+    "mean": 0.45045632333767927,
+    "ci_lo": 0.424380704041721,
+    "ci_hi": 0.4758800521512386
+  },
+  "Cx_EX": {
+    "mean": 0.3103448275862069,
+    "n_complex": 145
+  },
+  "sft_start": "phase11_sft_schemaaug"
+}
