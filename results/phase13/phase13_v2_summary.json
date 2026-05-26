@@ -1,0 +1,50 @@
+{
+  "base (Qwen-Coder)": {
+    "EX_pct": 49.09,
+    "EX_CI": [
+      46.54,
+      51.63
+    ],
+    "Cx_EX_pct": 32.41
+  },
+  "SFT (BIRD-only 4.5K)": {
+    "EX_pct": 30.44,
+    "EX_CI": [
+      28.29,
+      32.99
+    ],
+    "Cx_EX_pct": 13.79
+  },
+  "GSPO v1 (BIRD-only)": {
+    "EX_pct": 35.27,
+    "EX_CI": [
+      32.92,
+      37.81
+    ],
+    "Cx_EX_pct": 20.0
+  },
+  "SFT (schema-aug 22.6K)": {
+    "EX_pct": 43.74,
+    "EX_CI": [
+      41.07,
+      46.35
+    ],
+    "Cx_EX_pct": 30.34
+  },
+  "GSPO v2 (on schema-aug, 249pt)": {
+    "EX_pct": 45.05,
+    "EX_CI": [
+      42.44,
+      47.59
+    ],
+    "Cx_EX_pct": 31.03
+  },
+  "★ GSPO v3 (1000pt 5-class, full train)": {
+    "EX_pct": 45.57,
+    "EX_CI": [
+      43.16,
+      48.31
+    ],
+    "Cx_EX_pct": 28.97
+  }
+}

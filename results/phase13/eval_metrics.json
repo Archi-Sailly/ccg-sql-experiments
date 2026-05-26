@@ -1,18 +1,18 @@
 {
   "adapter": "/content/drive/MyDrive/ccg-sql-experiments-workspace/phase13-results/gspo_v3_final",
-  "tag": "phase13_gspo_rebalanced",
+  "tag": "phase13_v2_gspo_rebalanced_clean",
   "strategy": "argmax (K=1)",
   "K": 1,
   "n_eval": 1534,
   "EX": {
-    "mean": 0.4530638852672751,
-    "ci_lo": 0.42633637548891784,
-    "ci_hi": 0.47783572359843546
+    "mean": 0.4556714471968709,
+    "ci_lo": 0.4315514993481095,
+    "ci_hi": 0.4830508474576271
   },
   "Cx_EX": {
-    "mean": 0.27586206896551724,
+    "mean": 0.2896551724137931,
     "n_complex": 145
   },
   "sft_start": "phase11_sft_schemaaug",
-  "gspo_train_data": "gspo_train_v3 (5-class balanced 1000 rows)"
+  "gspo_train_data": "gspo_train_v3 (5-class balanced 1000 rows, prompt-fixed)"
 }
