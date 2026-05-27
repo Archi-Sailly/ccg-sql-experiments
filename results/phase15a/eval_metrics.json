@@ -1,0 +1,18 @@
+{
+  "model": "Qwen/Qwen3-8B",
+  "adapter": null,
+  "tag": "phase15a_qwen3_base",
+  "strategy": "argmax (K=1, greedy)",
+  "enable_thinking": false,
+  "n_eval": 1534,
+  "EX": {
+    "mean": 0.4335071707953064,
+    "ci_lo": 0.409387222946545,
+    "ci_hi": 0.46088657105606257
+  },
+  "Cx_EX": {
+    "mean": 0.21379310344827587,
+    "n_complex": 145
+  },
+  "think_block_residual_pct": 0.0
+}
