@@ -1,0 +1,16 @@
+{
+  "model": "Qwen/Qwen2.5-Coder-14B-Instruct",
+  "adapter": null,
+  "tag": "phase15a_v2_qwen25_coder_14b_base",
+  "strategy": "argmax (K=1, greedy)",
+  "n_eval": 1534,
+  "EX": {
+    "mean": 0.5469361147327249,
+    "ci_lo": 0.5221642764015645,
+    "ci_hi": 0.5717079530638852
+  },
+  "Cx_EX": {
+    "mean": 0.41379310344827586,
+    "n_complex": 145
+  }
+}
