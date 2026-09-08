@@ -245,6 +245,24 @@ compose_from_container(){
   return 0
 }
 
+# 컨테이너가 정지됐는데도 호스트 포트를 잡고 있는 고아 docker-proxy 정리 ("port is already allocated" 방지)
+free_stale_ports(){
+  local ports="$1" p line pid holder
+  command -v ss >/dev/null || return 0
+  for p in $ports; do
+    line="$(sudo ss -ltnpH "sport = :$p" 2>/dev/null | head -1)"
+    [ -n "$line" ] || continue
+    holder="$(printf '%s' "$line" | grep -oP 'users:\(\("\K[^"]+' | head -1)"
+    pid="$(printf '%s' "$line" | grep -oP 'pid=\K[0-9]+' | head -1)"
+    if [ "$holder" = docker-proxy ] && ! docker ps --format '{{.Ports}}' | grep -q ":$p->"; then
+      warn "포트 $p 를 고아 docker-proxy(pid $pid)가 잡고 있음 → 종료"
+      run sudo kill "$pid"; sleep 1
+    elif [ -n "$holder" ]; then
+      warn "포트 $p 를 '$holder'(pid ${pid:-?})가 사용 중 — 컨테이너 기동이 실패할 수 있음"
+    fi
+  done
+}
+
 # 최근 N일 로그에서 실제 HTTP 요청 수 (health/ping 제외, 최대 5000줄까지만 셈)
 http_activity(){
   local c="$1" n
@@ -366,8 +384,11 @@ except: print('?')"))"
     warn "[DRY] 여기서 재기동했을 것입니다 (파일은 원상복구함)"
     VLLM_RESULT="DRY: ${CUR_UTIL} → ${UTIL}"
   else
+    PUB_PORTS="$(docker inspect --format '{{range $p,$b := .HostConfig.PortBindings}}{{range $b}}{{.HostPort}} {{end}}{{end}}' "$VLLM_CONTAINER" 2>/dev/null)"
     run "${COMPOSE[@]}" stop "$CP_SERVICE"
-    sleep 3; info; info "-- vLLM 정지 후 --"; free -h
+    sleep 10; info; info "-- vLLM 정지 10초 후 (여기서 used 가 크게 안 줄면 vLLM 이 주범이 아님 → 호스트 프로세스 확인) --"; free -h
+    ps -eo rss,args --sort=-rss | head -6 | awk 'NR==1{print;next}{$1=sprintf("%.1fG",$1/1048576);print}' | cut -c1-120
+    command -v ollama >/dev/null && { info "-- ollama ps --"; ollama ps 2>&1; }
     # 여유가 생긴 지금 스왑 복귀 + 캐시 정리 (vLLM 이 시작 시 '여유 메모리' 를 검사하므로)
     SWAP_USED_KB=$(awk '$1=="SwapTotal:"{t=$2}$1=="SwapFree:"{f=$2}END{print t-f}' /proc/meminfo)
     if [ "${SWAP_USED_KB:-0}" -gt 0 ] && [ "$(mem_kb MemAvailable)" -gt $((SWAP_USED_KB + 4*1048576)) ]; then
@@ -376,7 +397,25 @@ except: print('?')"))"
     sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches' 2>/dev/null || warn "drop_caches 실패(무시)"
 
     START_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    run "${COMPOSE[@]}" up -d --force-recreate --no-deps "$CP_SERVICE" || { cp -p "$BACKUP" "$TARGET"; "${COMPOSE[@]}" up -d --force-recreate --no-deps "$CP_SERVICE"; die "up 실패 → 원본 설정으로 복구 기동함"; }
+    up_vllm(){ printf '+ %s\n' "${COMPOSE[*]} up -d --force-recreate --no-deps $CP_SERVICE"; "${COMPOSE[@]}" up -d --force-recreate --no-deps "$CP_SERVICE" 2>&1 | tee "$WORK/up.log"; return "${PIPESTATUS[0]}"; }
+    rollback_vllm(){  # 원본 compose 로 되돌려 기동. 성공 0 / 실패 1
+      cp -p "$BACKUP" "$TARGET"; free_stale_ports "$PUB_PORTS"
+      if up_vllm; then return 0; fi
+      grep -q 'port is already allocated' "$WORK/up.log" && { free_stale_ports "$PUB_PORTS"; sleep 2; up_vllm && return 0; }
+      return 1
+    }
+    free_stale_ports "$PUB_PORTS"
+    UP_OK=0
+    if up_vllm; then UP_OK=1
+    elif grep -q 'port is already allocated' "$WORK/up.log"; then
+      warn "포트 충돌 → 고아 docker-proxy 정리 후 1회 재시도"; free_stale_ports "$PUB_PORTS"; sleep 2
+      up_vllm && UP_OK=1
+    fi
+    if [ "$UP_OK" != 1 ]; then
+      warn "새 설정으로 up 실패 → 원본 설정으로 롤백 시도"
+      if rollback_vllm; then die "up 실패 → 원본 설정(${CUR_UTIL})으로 복구 기동함. 로그: $WORK/up.log"
+      else die "!!! vLLM 이 현재 내려가 있습니다. 포트 점유 확인: sudo ss -ltnp 'sport = :${PUB_PORTS%% *}'  → docker-proxy 면 kill 후  cd $CP_DIR && docker compose up -d"; fi
+    fi
     NEWC="$(docker ps -aq --filter "label=com.docker.compose.project=$CP_PROJECT" --filter "label=com.docker.compose.service=$CP_SERVICE" | head -1)"
     info "새 컨테이너: $(docker inspect --format '{{.Name}}' "$NEWC" | sed 's#^/##') — 기동 대기 (최대 ${WAIT_SECS}s)"
     STATE=""; T0=$(date +%s)
@@ -400,10 +439,9 @@ except: print('?')"))"
       VLLM_RESULT="${CUR_UTIL} → ${UTIL} (예산 ~${BUDGET_GIB} GiB)"
     else
       warn "vLLM 기동 실패/타임아웃 (${STATE}). 마지막 로그:"; docker logs --since "$START_TS" "$NEWC" 2>&1 | tail -40
-      cp -p "$BACKUP" "$TARGET"
-      "${COMPOSE[@]}" up -d --force-recreate --no-deps "$CP_SERVICE"
       NEXT="$(python3 -c "print('%.2f'%min(float('$UTIL')+0.1,0.9))")"
-      die "원본 설정(${CUR_UTIL})으로 롤백 기동했습니다. 예산이 부족했을 가능성이 크니 'UTIL=${NEXT} bash $0' 으로 재시도하세요"
+      if rollback_vllm; then die "원본 설정(${CUR_UTIL})으로 롤백 기동했습니다. 예산이 부족했을 가능성이 크니 'UTIL=${NEXT} bash $0' 으로 재시도하세요"
+      else die "!!! 롤백 기동도 실패 — vLLM 이 현재 내려가 있습니다. 포트 점유 확인: sudo ss -ltnp 'sport = :${PUB_PORTS%% *}'  → docker-proxy 면 kill 후  cd $CP_DIR && docker compose up -d"; fi
     fi
     info; info "-- vLLM 재기동 후 --"; free -h
   fi
